@@ -3,7 +3,7 @@
 
 from waflib.Configure import conf
 from waflib.Errors import ConfigurationError
-from io import StringIO
+from StringIO import StringIO
 import logging
 import re
 
@@ -137,7 +137,7 @@ def check_long_long_format(self, **kw):
 	return fmt
 
 @conf
-def check_compile_warn(self, **kw):
+def check_compile_warn(self, msvc_warn='', **kw):
 	err = StringIO()
 	hdr = logging.StreamHandler(err)
 	if 'msvc' in (self.env.CC_NAME, self.env.CXX_NAME):
@@ -146,14 +146,39 @@ def check_compile_warn(self, **kw):
 	else:
 		hdr.setLevel(logging.ERROR)
 	self.logger.addHandler(hdr)
-	self.check(**kw)
+	m = kw.get('mandatory', True)
+	kw['mandatory'] = True
+	self.validate_c(kw)
+	self.start_msg(kw['msg'])
+	try:
+		self.run_c_code(**kw)
+	except ConfigurationError:
+		self.end_msg(kw['errmsg'], 'YELLOW')
+		self.post_check(**kw)
+		self.logger.removeHandler(hdr)
+		if m:
+			raise
+		return
 	self.logger.removeHandler(hdr)
 	err_str = err.getvalue()
 	if 'msvc' in (self.env.CC_NAME, self.env.CXX_NAME):
-		warn = re.compile(r'^.*\(\d+\)\s+:\s+warning\s+C\d+:.*$', re.MULTILINE)
-		mo = warn.search(err_str)
+		if isinstance(msvc_warn, str):
+			warn = re.compile(msvc_warn)
+		else:
+			warn = msvc_warn
+		mo = warn.search(err_str, re.MULTILINE)
 		if mo:
-			self.fatal(mo.group(0))
+			self.end_msg(kw['errmsg'], 'YELLOW')
+			if m:
+				self.fatal(mo.group(0))
+			else:
+				return
 	else:
 		if err_str:
-			self.fatal(err_str)
+			self.end_msg(kw['errmsg'], 'YELLOW')
+			if m:
+				self.fatal(err_str)
+			else:
+				return
+	self.end_msg(kw['okmsg'])
+	self.post_check(**kw)
