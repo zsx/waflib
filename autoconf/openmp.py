@@ -24,17 +24,20 @@ def check_openmp_cflags(self, **kw):
     except ConfigurationError:
         for flag in ('-fopenmp', '-xopenmp', '-openmp', '-mp', '-omp', '-qsmp=omp'):
             try:
+                self.validate_c(kw) #refresh env
                 if kw['compiler'] == 'c':
-                    kw['ccflags'] = kw['cflags'] = flag,
+                    kw['ccflags'] = kw['cflags'] = flag
                 elif kw['compiler'] == 'cxx':
-                    kw['cxxflags'] = flag,
+                    kw['cxxflags'] = flag
                 else:
                     self.fatal('Compiler has to be "c" or "cxx"')
+                kw['linkflags'] = flag
                 self.run_c_code(**kw)
                 if 'define_name' in kw:
                     self.define(kw['define_name'], 1)
                 self.end_msg(flag)
                 self.env.OPENMP_CFLAGS = flag
+                self.env.OPENMP_LINKFLAGS = flag
                 return
             except ConfigurationError:
                 continue
