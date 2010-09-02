@@ -37,6 +37,7 @@ def check_openmp_cflags(self, **kw):
                 self.end_msg(flag)
                 return
             except ConfigurationError:
+		del kw['env']
                 continue
 
         self.end_msg('Not supported')
