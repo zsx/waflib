@@ -32,12 +32,9 @@ def check_openmp_cflags(self, **kw):
                 else:
                     self.fatal('Compiler has to be "c" or "cxx"')
                 kw['linkflags'] = flag
-                self.run_c_code(**kw)
-                if 'define_name' in kw:
-                    self.define(kw['define_name'], 1)
+                kw['success'] = self.run_c_code(**kw)
+                self.post_check(**kw)
                 self.end_msg(flag)
-                self.env.OPENMP_CFLAGS = flag
-                self.env.OPENMP_LINKFLAGS = flag
                 return
             except ConfigurationError:
                 continue
